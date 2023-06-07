@@ -1,5 +1,4 @@
 from PPO2.continuous import Agent
-from PPO2.normalization import Normalization
 import gym
 import numpy as np
 import argparse
@@ -120,15 +119,8 @@ class EnvPanda(gym.Env):
         while True:
 
             obs = self.env.reset()   # same for reset
-            
-            #ach = self.object
-            #object_pos = self.env.sim.data.get_joint_qpos('object0:joint')
-            #object_pos[:2] = [1.24 ,0.73]
-            #self.env.sim.data.set_joint_qpos("object0:joint", object_pos) 
-
 
             ach = obs['achieved_goal']
-            #ach[:2] = [1.24 ,0.73]
             des = obs['desired_goal']
             obs = obs['observation']
             if self.compute_reward(ach,des) > 0:

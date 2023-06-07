@@ -45,6 +45,10 @@ class main():
         print("---------------")
 
         # training
+        # training for 10 times
+        for i in range(10):
+            agent = Agent(args,hidden_layer_num_list) 
+            agent.train(args,env,env_name) 
         agent.train(args,env,env_name) 
 
 
@@ -151,7 +155,7 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", type=int, default=5, help="HPPO training iteration parameter")
     parser.add_argument("--epsilon", type=float, default=0.2, help="HPPO clip parameter")
     parser.add_argument("--entropy_coef", type=float, default=0.00, help="Trick 5: policy entropy")
-    parser.add_argument("--max_train_steps", type=int, default=int(2e6), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(3e6), help=" Maximum number of training steps")
     parser.add_argument("--max_rollout_step", type=int, default=8000, help=" Maximum number of rollout steps")
     parser.add_argument("--use_hindsight_goal", type=bool, default=True, help="Flag for using hindsight goal")
     parser.add_argument("--evaluate_freq", type=int, default=10, help="Evaluate the policy every 'evaluate_freq' steps")
@@ -160,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument("--use_state_norm", type=bool, default=True, help="Flag for using state normalization")
     parser.add_argument("--use_goal_norm", type=bool, default=True, help="Flag for using state normalization")
     parser.add_argument("--use_HGF", type=bool, default=True, help="Flag for using hindsight goal filter")
-    parser.add_argument("--actor_std_min", type=float, default=2.1, help="Flag for using hindsight goal filter")
+    parser.add_argument("--actor_std_min", type=float, default=2, help="Flag for using hindsight goal filter")
     parser.add_argument("--env_name", type=str, default="FetchSlide-v1", help=" Maximum number of rollout steps")
 
 

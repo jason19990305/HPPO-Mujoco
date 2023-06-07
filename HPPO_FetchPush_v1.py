@@ -44,9 +44,11 @@ class main():
         print(agent.critic)
         print("---------------")
 
-        # training
+        # training for 10 times
+        #for i in range(10):
+        #    agent = Agent(args,hidden_layer_num_list) 
+        #    agent.train(args,env,env_name) 
         agent.train(args,env,env_name) 
-
 
         path_actor = "model/HPPO_Actor_"+env_name+".pt"
         path_critic = "model/HPPO_Critic_"+env_name+".pt"
@@ -159,8 +161,8 @@ if __name__ == '__main__':
     parser.add_argument("--mini_batch_size_ratio", type=int, default=128, help="mini_batch_size_ratio")
     parser.add_argument("--use_state_norm", type=bool, default=True, help="Flag for using state normalization")
     parser.add_argument("--use_goal_norm", type=bool, default=True, help="Flag for using state normalization")
-    parser.add_argument("--use_HGF", type=bool, default=True, help="Flag for using hindsight goal filter")
-    parser.add_argument("--actor_std_min", type=float, default=2.1, help="Flag for using hindsight goal filter")
+    parser.add_argument("--use_HGF", type=bool, default=False, help="Flag for using hindsight goal filter")
+    parser.add_argument("--actor_std_min", type=float, default=2, help="Flag for using hindsight goal filter")
     parser.add_argument("--env_name", type=str, default="FetchPush-v1", help=" Maximum number of rollout steps")
 
 

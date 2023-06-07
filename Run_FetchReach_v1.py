@@ -12,12 +12,19 @@ class main():
         num_obs =  env.observation_space['observation'].shape[0]
         num_actions = env.action_space.shape[0]
         num_states = num_obs + num_desire + num_achive
+        
         # args
         args.num_actions = num_actions
         args.num_states = num_states
         args.num_goal = num_desire
+
         # env
         env = EnvPanda(env_name)
+
+        args.x_max = env.x_max
+        args.x_min = env.x_min
+        args.y_max = env.y_max
+        args.y_min = env.y_min
 
         # print args
         print("---------------")
@@ -27,7 +34,7 @@ class main():
         # create agent
         hidden_layer_num_list = [64]
         agent = Agent(args,hidden_layer_num_list)   
-        agent.load_actor_model("model/HPPO_Actor_"+env_name+".pt")
+        agent.load_actor_model("model/HPPO_Actor_"+env_name+".pt")# b1
         agent.state_norm.load_yaml(env_name+'_state.yaml')
         agent.goal_norm.load_yaml(env_name+'_goal.yaml')
 
@@ -52,6 +59,15 @@ class EnvPanda(gym.Env):
             self.env = gym.make(env_name)    # The wrapper encapsulates the gym env
             self.render_mode = render_mode
         self.threshold = 0.05
+
+        x = self.env.initial_gripper_xpos[0]
+        y = self.env.initial_gripper_xpos[1]
+        self.target_range = self.env.target_range
+
+        self.x_max = x + self.target_range
+        self.x_min = x - self.target_range
+        self.y_max = y + self.target_range
+        self.y_min = y - self.target_range
 
     def distance(self,p1,p2):
         d = (p1-p2)**2
@@ -78,7 +94,7 @@ class EnvPanda(gym.Env):
         obs = state['observation']
         
         if self.distance(ach,self.pervious_ach) > 0.001:
-            print("Object been moved.",ach)
+            #print("Object been moved.",ach)
             reward += 100
 
         reward = self.compute_reward(ach,des)
@@ -97,12 +113,14 @@ class EnvPanda(gym.Env):
 
     def reset(self):
         obs = self.env.reset()   # same for reset
+        # target range is 0.15
 
          
         print("-----------")
         while True:
 
             obs = self.env.reset()   # same for reset
+            
             #ach = self.object
             #object_pos = self.env.sim.data.get_joint_qpos('object0:joint')
             #object_pos[:2] = [1.24 ,0.73]
@@ -117,9 +135,10 @@ class EnvPanda(gym.Env):
                 continue
             else:
                 break
-
+        
         self.init_ach = ach
-        print("first achieved goal : ",ach)
+        print(self.env.initial_gripper_xpos[:3])
+        print("desired goal : ",des)
         self.count = 1
         self.pervious_ach = ach
 
@@ -146,6 +165,7 @@ if __name__ == '__main__':
     parser.add_argument("--use_goal_norm", type=bool, default=True, help="Flag for using state normalization")
     parser.add_argument("--use_HGF", type=bool, default=True, help="Flag for using hindsight goal filter")
     parser.add_argument("--env_name", type=str, default="FetchReach-v1", help=" Maximum number of rollout steps")
+    parser.add_argument("--actor_std_min", type=float, default=1.5, help="Flag for using hindsight goal filter")
 
     args = parser.parse_args()
     env_name = args.env_name

@@ -16,8 +16,17 @@ class main():
         args.num_actions = num_actions
         args.num_states = num_states
         args.num_goal = num_desire
+
+        
         # env
         env = EnvPanda(env_name)
+
+
+        args.x_max = env.x_max
+        args.x_min = env.x_min
+        args.y_max = env.y_max
+        args.y_min = env.y_min
+
 
         # print args
         print("---------------")
@@ -35,9 +44,11 @@ class main():
         print(agent.critic)
         print("---------------")
 
-        # training
-        agent.train(args,env,env_name) 
-
+        # training for 10 times
+        for i in range(10):
+            agent = Agent(args,hidden_layer_num_list) 
+            agent.train(args,env,env_name) 
+        #agent.train(args,env,env_name) 
 
         path_actor = "model/HPPO_Actor_"+env_name+".pt"
         path_critic = "model/HPPO_Critic_"+env_name+".pt"
@@ -49,7 +60,7 @@ class main():
         # save the normalization paramter to yaml 
         agent.state_norm.save_yaml(env_name+"_state.yaml")
         agent.goal_norm.save_yaml(env_name+"_goal.yaml")
-
+        
         # evaluate 
         env_evaluate = EnvPanda(env_name,render_mode='human')
         
@@ -68,6 +79,16 @@ class EnvPanda(gym.Env):
             self.env = gym.make(env_name)    # The wrapper encapsulates the gym env
             self.render_mode = render_mode
         self.threshold = 0.05
+
+        x = self.env.initial_gripper_xpos[0]
+        y = self.env.initial_gripper_xpos[1]
+        self.target_range = self.env.target_range
+
+        self.x_max = x + self.target_range
+        self.x_min = x - self.target_range
+        self.y_max = y + self.target_range
+        self.y_min = y - self.target_range
+
 
     def distance(self,p1,p2):
         d = (p1-p2)**2
@@ -95,7 +116,7 @@ class EnvPanda(gym.Env):
         
         if reward == 0:
             if self.distance(ach,self.pervious_ach) > 0.001:
-                reward = 0.01
+                reward = 1
 
         self.pervious_ach = ach
         
@@ -129,10 +150,10 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate of actor")
     parser.add_argument("--gamma", type=float, default=0.98, help="Discount factor")
     parser.add_argument("--lamda", type=float, default=0.95, help="GAE parameter")
-    parser.add_argument("--epochs", type=int, default=10, help="HPPO training iteration parameter")
+    parser.add_argument("--epochs", type=int, default=5, help="HPPO training iteration parameter")
     parser.add_argument("--epsilon", type=float, default=0.2, help="HPPO clip parameter")
     parser.add_argument("--entropy_coef", type=float, default=0.00, help="Trick 5: policy entropy")
-    parser.add_argument("--max_train_steps", type=int, default=int(3e6), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(2e6), help=" Maximum number of training steps")
     parser.add_argument("--max_rollout_step", type=int, default=3200, help=" Maximum number of rollout steps")
     parser.add_argument("--use_hindsight_goal", type=bool, default=True, help="Flag for using hindsight goal")
     parser.add_argument("--evaluate_freq", type=int, default=1, help="Evaluate the policy every 'evaluate_freq' steps")
@@ -140,9 +161,8 @@ if __name__ == '__main__':
     parser.add_argument("--mini_batch_size_ratio", type=int, default=512, help="mini_batch_size_ratio")
     parser.add_argument("--use_state_norm", type=bool, default=True, help="Flag for using state normalization")
     parser.add_argument("--use_goal_norm", type=bool, default=True, help="Flag for using state normalization")
-    parser.add_argument("--use_HGF", type=bool, default=True, help="Flag for using hindsight goal filter")
+    parser.add_argument("--use_HGF", type=bool, default=False, help="Flag for using hindsight goal filter")
     parser.add_argument("--actor_std_min", type=float, default=1.1, help="Flag for using hindsight goal filter")
-
     parser.add_argument("--env_name", type=str, default="FetchReach-v1", help=" Maximum number of rollout steps")
 
 

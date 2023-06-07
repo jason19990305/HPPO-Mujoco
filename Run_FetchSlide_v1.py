@@ -12,16 +12,19 @@ class main():
         num_obs =  env.observation_space['observation'].shape[0]
         num_actions = env.action_space.shape[0]
         num_states = num_obs + num_desire + num_achive
+        
         # args
         args.num_actions = num_actions
         args.num_states = num_states
         args.num_goal = num_desire
+
         # env
         env = EnvPanda(env_name)
 
-        # normalization
-        state_norm = Normalization(shape=args.num_states)  # Trick 2:state normalization
-        state_norm.load_yaml(env_name+'.yaml')
+        args.x_max = env.x_max
+        args.x_min = env.x_min
+        args.y_max = env.y_max
+        args.y_min = env.y_min
 
         # print args
         print("---------------")
@@ -30,10 +33,10 @@ class main():
         print("---------------")
         # create agent
         hidden_layer_num_list = [64]
-        agent = Agent(args,state_norm,hidden_layer_num_list)   
-        agent.load_actor_model("model/HPPO_Actor_"+env_name+"_30.pt")
-        agent.state_norm.load_yaml(env_name+'.yaml')
-
+        agent = Agent(args,hidden_layer_num_list)   
+        agent.load_actor_model("model/HPPO_Actor_"+env_name+".pt")# b1
+        agent.state_norm.load_yaml(env_name+'_state.yaml')
+        agent.goal_norm.load_yaml(env_name+'_goal.yaml')
 
         print(agent.actor)
         print("---------------")
@@ -57,6 +60,15 @@ class EnvPanda(gym.Env):
             self.render_mode = render_mode
         self.threshold = 0.05
 
+        x = self.env.initial_gripper_xpos[0]
+        y = self.env.initial_gripper_xpos[1]
+        self.target_range = self.env.target_range
+
+        self.x_max = x + self.target_range
+        self.x_min = x - self.target_range
+        self.y_max = y + self.target_range
+        self.y_min = y - self.target_range
+
     def distance(self,p1,p2):
         d = (p1-p2)**2
         d = np.sum(d)
@@ -71,20 +83,25 @@ class EnvPanda(gym.Env):
     def step(self, action):
         if self.render_mode == 'human':
             self.env.render()
+        random_range = 0.5
+        noise = np.random.random(len(action)) * (random_range * 2) - random_range# 0 ~ 1 -> -0.1 ~0.1
+        #action += noise
+
+
         state, reward,truncted, info = self.env.step(action)   # calls the gym env methods
         ach = state['achieved_goal']
         des = state['desired_goal']
         obs = state['observation']
         
         if self.distance(ach,self.pervious_ach) > 0.001:
-            print("Object been moved.",ach)
+            #print("Object been moved.",ach)
             reward += 100
 
         reward = self.compute_reward(ach,des)
         
         bdw = True if reward > 0 else False
         if bdw and self.count >1:
-            print("achieve the goal!")
+            print("******* achieve the goal! *******")
 
 
         state = np.hstack([des,ach,obs])
@@ -96,24 +113,32 @@ class EnvPanda(gym.Env):
 
     def reset(self):
         obs = self.env.reset()   # same for reset
+        # target range is 0.15
 
-        '''object_pos = self.env.sim.data.get_joint_qpos('object0:joint')
-        object_pos[:2] = [1.24 ,0.73]
-        self.env.sim.data.set_joint_qpos("object0:joint", object_pos)   '''
-
+         
+        print("-----------")
         while True:
 
             obs = self.env.reset()   # same for reset
+            
             #ach = self.object
+            #object_pos = self.env.sim.data.get_joint_qpos('object0:joint')
+            #object_pos[:2] = [1.24 ,0.73]
+            #self.env.sim.data.set_joint_qpos("object0:joint", object_pos) 
+
+
             ach = obs['achieved_goal']
+            #ach[:2] = [1.24 ,0.73]
             des = obs['desired_goal']
             obs = obs['observation']
             if self.compute_reward(ach,des) > 0:
                 continue
             else:
                 break
-
+        
         self.init_ach = ach
+        print(self.env.initial_gripper_xpos[:3])
+        print("desired goal : ",des)
         self.count = 1
         self.pervious_ach = ach
 
@@ -134,16 +159,15 @@ if __name__ == '__main__':
     parser.add_argument("--max_rollout_step", type=int, default=3200, help=" Maximum number of rollout steps")
     parser.add_argument("--use_hindsight_goal", type=bool, default=True, help="Flag for using hindsight goal")
     parser.add_argument("--evaluate_freq", type=int, default=10, help="Evaluate the policy every 'evaluate_freq' steps")
-    parser.add_argument("--save_model_freq_training_epoch", type=int, default=1, help="Save model frequance")
-    parser.add_argument("--mini_batch_size_ratio", type=int, default=32, help="mini_batch_size_ratio")
+    parser.add_argument("--save_model_freq_training_epoch", type=int, default=10, help="Save model frequance")
+    parser.add_argument("--mini_batch_size_ratio", type=int, default=512, help="mini_batch_size_ratio")
     parser.add_argument("--use_state_norm", type=bool, default=True, help="Flag for using state normalization")
-    parser.add_argument("--use_HGF", type=bool, default=False, help="Flag for using hindsight goal filter")
+    parser.add_argument("--use_goal_norm", type=bool, default=True, help="Flag for using state normalization")
+    parser.add_argument("--use_HGF", type=bool, default=True, help="Flag for using hindsight goal filter")
+    parser.add_argument("--env_name", type=str, default="FetchSlide-v1", help=" Maximum number of rollout steps")
+    parser.add_argument("--actor_std_min", type=float, default=1.5, help="Flag for using hindsight goal filter")
 
-
-    parser.add_argument("--batch_size", type=int, default=1024, help="Batch size")
-    parser.add_argument("--mini_batch_size", type=int, default=4096, help="Minibatch size")
-    parser.add_argument("--max_rollout_episode", type=int, default=64, help=" Maximum number of rollout steps")
     args = parser.parse_args()
-    env_name = 'FetchSlide-v1'
+    env_name = args.env_name
 
     main(args,env_name=env_name)
