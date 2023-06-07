@@ -1,5 +1,4 @@
-from PPO2.continuous import Agent
-from PPO2.normalization import Normalization
+from HPPO.continuous import Agent
 import gym
 import numpy as np
 import argparse

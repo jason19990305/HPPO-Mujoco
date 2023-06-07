@@ -1,4 +1,4 @@
-from PPO2.continuous import Agent
+from HPPO.continuous import Agent
 import gym
 import numpy as np
 import argparse
